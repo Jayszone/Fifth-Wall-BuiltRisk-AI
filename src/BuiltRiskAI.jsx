@@ -122,6 +122,70 @@ mitigant in the current operating profile.`,
   ],
 }
 
+// ─── Address-seeded deterministic scoring ─────────────────────────────────────
+// Same address → same score every time. Different address → different score.
+function hashAddress(str) {
+  let h = 5381
+  const s = str.toLowerCase().trim()
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(h, 31) + s.charCodeAt(i) | 0
+  }
+  return Math.abs(h)
+}
+
+function makeRng(seed) {
+  let s = seed >>> 0
+  const next = () => {
+    s += 0x6D2B79F5
+    let t = Math.imul(s ^ (s >>> 15), s | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  return {
+    int:    (a, b)  => a + Math.floor(next() * (b - a + 1)),
+    choice: (arr)   => arr[Math.floor(next() * arr.length)],
+  }
+}
+
+function genMock(address = '') {
+  const rng = makeRng(hashAddress(address))
+
+  const base       = rng.int(55, 72)
+  const wildfire   = rng.int(0, 10)
+  const heat       = rng.int(0, 8)
+  const energy     = rng.int(0, 9)
+  const compliance = rng.choice([-3, 0, 5, 7])
+  const dataQual   = rng.choice([-4, -2, 0, 3])
+
+  const total = Math.min(100, Math.max(0, base + wildfire + heat + energy + compliance + dataQual))
+  const label  = total >= 75 ? 'High Risk' : total >= 65 ? 'Moderate Risk' : 'Standard Risk'
+  const opRisk = total >= 75 ? 'high' : total >= 65 ? 'mod' : 'low'
+  const opVal  = total >= 75 ? 'High'  : total >= 65 ? 'Moderate' : 'Low'
+  const hzRisk = wildfire >= 7 ? 'high' : wildfire >= 4 ? 'mod' : 'low'
+  const hzVal  = wildfire >= 7 ? 'High' : wildfire >= 4 ? 'Moderate' : 'Low'
+
+  return {
+    ...MOCK,
+    score:     total,
+    riskLabel: label,
+    breakdown: [
+      { label: 'Base Score',               delta: base,     base: true },
+      { label: 'Wildfire exposure',        delta: wildfire             },
+      { label: 'Heat risk',                delta: heat                 },
+      { label: 'Energy intensity',         delta: energy               },
+      ...(compliance > 0 ? [{ label: 'Non-compliant status',  delta: compliance            }] : []),
+      ...(compliance < 0 ? [{ label: 'Compliance current',    delta: compliance, positive: true }] : []),
+      ...(dataQual   < 0 ? [{ label: 'Strong data quality',   delta: dataQual,   positive: true }] : []),
+      ...(dataQual   > 0 ? [{ label: 'Incomplete data',       delta: dataQual              }] : []),
+    ],
+    miniCards: [
+      { ...MOCK.miniCards[0], value: opVal, risk: opRisk },
+      { ...MOCK.miniCards[1], value: hzVal, risk: hzRisk },
+      MOCK.miniCards[2],
+    ],
+  }
+}
+
 // ─── Shared ───────────────────────────────────────────────────────────────────
 const Sp = ({ h }) => <div style={{ height: h }} />
 
@@ -523,8 +587,8 @@ function Toggle({ options, value, onChange }) {
 }
 
 // ─── VIEW 4: RESULTS ─────────────────────────────────────────────────────────
-function Results({ onReset }) {
-  const d = MOCK
+function Results({ data, onReset }) {
+  const d = data
 
   // Expandable mini cards
   const [expandedCards, setExpandedCards] = useState(new Set())
@@ -891,7 +955,7 @@ function Results({ onReset }) {
 
         <Sp h={48} />
         <p style={{ fontSize: 11, color: C.text3, textAlign: 'center' }}>
-          BuiltRisk AI · Fifth Wall Prototype · Live geocoding · LA EBEWE benchmarks · FEMA NRI
+          Demo mode: risk factors are generated from the entered address to illustrate how the scoring layer works. &nbsp;·&nbsp; BuiltRisk AI · Fifth Wall
         </p>
         <Sp h={56} />
       </Wrap>
@@ -901,8 +965,9 @@ function Results({ onReset }) {
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function BuiltRiskAI() {
-  const [view,    setView]    = useState('landing')
-  const [address, setAddress] = useState('')
+  const [view,     setView]     = useState('landing')
+  const [address,  setAddress]  = useState('')
+  const [liveData, setLiveData] = useState(() => genMock())
 
   return (
     <>
@@ -912,13 +977,13 @@ export default function BuiltRiskAI() {
           <Landing onAnalyze={addr => { setAddress(addr); setView('processing') }} />
         )}
         {view === 'processing' && (
-          <Processing address={address} onComplete={() => setView('match')} />
+          <Processing address={address} onComplete={() => { setLiveData(genMock(address)); setView('match') }} />
         )}
         {view === 'match' && (
           <Match onContinue={() => setView('results')} />
         )}
         {view === 'results' && (
-          <Results address={address} onReset={() => { setAddress(''); setView('landing') }} />
+          <Results data={liveData} address={address} onReset={() => { setAddress(''); setView('landing') }} />
         )}
       </div>
     </>
