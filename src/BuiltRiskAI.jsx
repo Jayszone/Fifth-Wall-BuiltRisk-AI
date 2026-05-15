@@ -238,6 +238,71 @@ const DataRow = ({ label, value, risk }) => {
   )
 }
 
+function formatCurrency(n) {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `$${Math.round(n / 1_000)}K`
+  return `$${Math.round(n).toLocaleString()}`
+}
+
+function calculateBusinessCase({
+  assets,
+  premium,
+  improvement,
+  downtime,
+  price,
+}) {
+  const totalPremiumBase = assets * premium
+  const premiumSavings = totalPremiumBase * (improvement / 100)
+  const totalAnnualValue = premiumSavings + downtime
+  const arrOpportunity = assets * price
+  const paybackRatio = arrOpportunity > 0 ? totalAnnualValue / arrOpportunity : 0
+
+  return {
+    totalPremiumBase,
+    premiumSavings,
+    totalAnnualValue,
+    arrOpportunity,
+    paybackRatio,
+  }
+}
+
+function ceoMemoText() {
+  return `Recommendation:
+Proceed to customer discovery.
+
+Thesis:
+Commercial real estate underwriting remains static and document-heavy, while asset owners increasingly have access to building, hazard, and operating data. BuiltRisk could become an asset-owner-facing risk intelligence layer before renewal and before loss events.
+
+Why now:
+- building and compliance data are increasingly digitized
+- insurance costs and climate-related risk are rising
+- AI can translate fragmented documents and operating signals into explainable risk recommendations
+- asset owners need more transparency and leverage before underwriting decisions
+
+Initial buyer:
+Large commercial asset owners / REITs with recurring insurance renewals.
+
+Initial wedge:
+90-day pre-renewal risk readiness report.
+
+Key risks:
+- access to high-quality private operating data
+- proving measurable insurance or downtime savings
+- identifying the true budget owner
+- avoiding overdependence on insurers as early adopters
+
+Next validation steps:
+1. Interview 10 asset owners / REIT operators
+2. Interview 5 brokers or risk consultants
+3. Test willingness to pay for renewal readiness
+4. Validate whether risk recommendations can change operational behavior
+5. Build a data room / underwriting packet workflow prototype
+
+Verdict:
+Worth pressure-testing. The buyer pain is plausible, the workflow is document-heavy, and the LP network could provide a strong discovery and distribution advantage.`
+}
+
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 function Nav({ onBack }) {
   return (
@@ -586,6 +651,305 @@ function Toggle({ options, value, onChange }) {
   )
 }
 
+function SectionHeader({ label, title, children }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <Label style={{ marginBottom: 8 }}>{label}</Label>
+      <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: -0.4, marginBottom: children ? 6 : 0 }}>
+        {title}
+      </h3>
+      {children && (
+        <p style={{ fontSize: 12, color: C.text2, lineHeight: 1.65, maxWidth: 760 }}>
+          {children}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function MarketMap() {
+  const stakeholders = [
+    ['Asset Owners / REITs', 'own portfolio-level risk and insurance spend', 'renewal surprises, premium increases, limited asset-level visibility'],
+    ['Property Managers', 'manage building operations and documentation', 'fragmented maintenance logs, inspections, vendor records'],
+    ['Brokers', 'place coverage and package submissions', 'incomplete risk evidence and back-and-forth with carriers'],
+    ['Insurers / Underwriters', 'price and select risk', 'limited real-time operating visibility'],
+    ['Risk Engineering / Consultants', 'inspect assets and recommend mitigation', 'findings often stay static and disconnected from portfolio decisions'],
+    ['Building Data Platforms', 'hold operating, energy, compliance, and sensor data', 'data is not translated into underwriting or risk decisions'],
+  ]
+
+  return (
+    <div style={{ ...card, marginBottom: 16 }}>
+      <SectionHeader label="Incubation View" title="Market Map">
+        BuiltRisk sits between asset owners, building data, and insurance workflows, turning operational and hazard signals into underwriting-ready risk intelligence.
+      </SectionHeader>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {stakeholders.map(([name, role, pain]) => (
+          <div key={name} style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 18px', background: '#fff' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 10 }}>{name}</div>
+            <DataRow label="Role" value={role} />
+            <DataRow label="Pain" value={pain} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CustomerDiscovery() {
+  const personas = [
+    {
+      title: 'Asset Manager',
+      pain: [
+        'lacks visibility into risk before renewal',
+        'faces premium increases without clear explanation',
+        'needs portfolio-level prioritization',
+      ],
+      questions: [
+        'What information do you wish you had 90 days before renewal?',
+        'Which risk drivers most affect insurance cost across your portfolio?',
+        'What would make this a must-have rather than a nice-to-have?',
+      ],
+    },
+    {
+      title: 'Property Manager',
+      pain: [
+        'owns the operational evidence but not the insurance decision',
+        'struggles to collect inspection, maintenance, and mitigation documentation',
+        'handles incident response and vendor coordination',
+      ],
+      questions: [
+        'What documentation is hardest to collect before or after a loss?',
+        'Where does risk-related information currently live?',
+        'What slows down the handoff between operations and insurance teams?',
+      ],
+    },
+    {
+      title: 'Broker / Risk Consultant',
+      pain: [
+        'receives incomplete submissions',
+        'spends time translating asset conditions into insurer-ready narratives',
+        'needs evidence to support better underwriting outcomes',
+      ],
+      questions: [
+        'What makes a submission easier to place?',
+        'What evidence improves underwriting confidence?',
+        'Where do asset owners underestimate risk preparation?',
+      ],
+    },
+  ]
+
+  return (
+    <div style={{ ...card, marginBottom: 16 }}>
+      <SectionHeader label="Validation" title="Customer Discovery">
+        Initial discovery goal: interview 10 asset owners, 5 brokers, and 5 property/risk operators to validate urgency, budget owner, and workflow fit.
+      </SectionHeader>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+        {personas.map(p => (
+          <div key={p.title} style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 18px' }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 14 }}>{p.title}</div>
+            <div style={{ fontSize: 10, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.3, marginBottom: 8 }}>Pain</div>
+            {p.pain.map(item => (
+              <p key={item} style={{ fontSize: 12, color: C.text2, lineHeight: 1.55, marginBottom: 6 }}>• {item}</p>
+            ))}
+            <div style={{ height: 1, background: C.border, margin: '14px 0' }} />
+            <div style={{ fontSize: 10, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.3, marginBottom: 8 }}>Validation questions</div>
+            {p.questions.map(q => (
+              <p key={q} style={{ fontSize: 12, color: C.text2, lineHeight: 1.55, marginBottom: 7 }}>“{q}”</p>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RangeControl({ label, value, min, max, step, onChange, display }) {
+  const pct = ((value - min) / (max - min)) * 100
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, gap: 14 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{label}</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: C.accent, background: C.accentBg, padding: '1px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+          {display}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={e => onChange(+e.target.value)}
+        style={{ background: `linear-gradient(to right, ${C.accent} ${pct}%, ${C.border} ${pct}%)` }}
+      />
+    </div>
+  )
+}
+
+function BusinessCaseCalculator() {
+  const [assets, setAssets] = useState(100)
+  const [premium, setPremium] = useState(250000)
+  const [improvement, setImprovement] = useState(3)
+  const [downtime, setDowntime] = useState(250000)
+  const [price, setPrice] = useState(12000)
+  const result = calculateBusinessCase({ assets, premium, improvement, downtime, price })
+
+  const roiLabel = result.paybackRatio > 1
+    ? 'Potentially strong ROI case.'
+    : result.paybackRatio >= 0.5
+      ? 'Needs validation on willingness to pay and measurable savings.'
+      : 'Pricing or target segment may need adjustment.'
+
+  return (
+    <div style={{ ...card, marginBottom: 16 }}>
+      <SectionHeader label="Business Case" title="Illustrative ROI Calculator">
+        Estimate the financial logic for an asset-owner-facing risk readiness product. Outputs are directional and should be validated in discovery.
+      </SectionHeader>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gap: 20 }}>
+          <RangeControl label="Number of assets in portfolio" value={assets} min={10} max={1000} step={10} onChange={setAssets} display={assets.toLocaleString()} />
+          <RangeControl label="Average annual insurance premium per asset" value={premium} min={50000} max={1000000} step={25000} onChange={setPremium} display={formatCurrency(premium)} />
+          <RangeControl label="Estimated premium improvement" value={improvement} min={0} max={10} step={0.5} onChange={setImprovement} display={`${improvement}%`} />
+          <RangeControl label="Avoided downtime / operational loss per year" value={downtime} min={0} max={5000000} step={50000} onChange={setDowntime} display={formatCurrency(downtime)} />
+          <RangeControl label="SaaS price per asset per year" value={price} min={1000} max={50000} step={1000} onChange={setPrice} display={formatCurrency(price)} />
+        </div>
+
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            {[
+              ['Total premium base', formatCurrency(result.totalPremiumBase)],
+              ['Estimated premium savings', formatCurrency(result.premiumSavings)],
+              ['Total annual value', formatCurrency(result.totalAnnualValue)],
+              ['Potential ARR opportunity', formatCurrency(result.arrOpportunity)],
+            ].map(([label, value]) => (
+              <div key={label} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontSize: 10, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.3, marginBottom: 8 }}>{label}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: -0.7 }}>{value}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: '#fafaf9', border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
+            <DataRow label="Estimated payback ratio" value={`${result.paybackRatio.toFixed(1)}x`} />
+            <p style={{ fontSize: 13, color: C.text2, lineHeight: 1.7, marginTop: 14 }}>
+              At this portfolio size, a {improvement}% improvement on insurance spend creates {formatCurrency(result.premiumSavings)} in potential annual premium savings. At {formatCurrency(price)} per asset per year, BuiltRisk would represent {formatCurrency(result.arrOpportunity)} ARR and a value-to-cost ratio of {result.paybackRatio.toFixed(1)}x before considering broader strategic value.
+            </p>
+            <p style={{ fontSize: 13, color: result.paybackRatio > 1 ? C.low : result.paybackRatio >= 0.5 ? C.mod : C.high, fontWeight: 700, marginTop: 10 }}>
+              {roiLabel}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GtmWedge() {
+  return (
+    <div style={{ ...card, marginBottom: 16 }}>
+      <SectionHeader label="Go-to-market" title="GTM Wedge" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 16 }}>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: 18 }}>
+          <Label style={{ marginBottom: 10 }}>Initial buyer</Label>
+          <p style={{ fontSize: 13, color: C.text2, lineHeight: 1.65 }}>Large commercial asset owners / REITs with recurring insurance renewals and distributed portfolios.</p>
+        </div>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: 18 }}>
+          <Label style={{ marginBottom: 10 }}>Initial use case</Label>
+          <p style={{ fontSize: 13, color: C.text2, lineHeight: 1.65 }}>90-day pre-renewal risk readiness report.</p>
+        </div>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: 18 }}>
+          <Label style={{ marginBottom: 10 }}>Why this wedge</Label>
+          {['clear budget owner', 'measurable ROI', 'recurring annual pain', 'aligns with Fifth Wall’s LP base', 'starts as decision support before becoming system of record'].map(item => (
+            <p key={item} style={{ fontSize: 12, color: C.text2, lineHeight: 1.5, marginBottom: 5 }}>• {item}</p>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16, padding: '18px 20px', border: `1px solid ${C.border}`, borderRadius: 12, background: C.bg }}>
+        <Label style={{ marginBottom: 12 }}>Expansion path</Label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+          {['Portfolio risk monitoring', 'Underwriting packet generation', 'Claims / loss-event documentation', 'Broker collaboration workflows', 'Insurer / carrier integrations'].map((item, i) => (
+            <div key={item} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 12px' }}>
+              <div style={{ fontSize: 10, color: C.accent, fontWeight: 900, marginBottom: 8 }}>{String(i + 1).padStart(2, '0')}</div>
+              <div style={{ fontSize: 12, color: C.text2, fontWeight: 600, lineHeight: 1.35 }}>{item}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CeoMemo() {
+  const [visible, setVisible] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const memo = ceoMemoText()
+
+  const copyMemo = async () => {
+    try {
+      await navigator.clipboard.writeText(memo)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <div style={{ ...card, marginBottom: 16 }}>
+      <SectionHeader label="Synthesis" title="CEO Recommendation Memo">
+        A concise venture-building memo that mirrors the Field Office workflow of synthesizing recommendations for a CEO and advisors.
+      </SectionHeader>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <button
+          onClick={() => setVisible(true)}
+          style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13, padding: '11px 16px' }}
+        >
+          Generate CEO Memo
+        </button>
+        {visible && (
+          <button
+            onClick={copyMemo}
+            style={{ background: C.card, color: C.text2, border: `1px solid ${C.border}`, borderRadius: 10, fontWeight: 700, fontSize: 13, padding: '11px 16px' }}
+          >
+            {copied ? 'Copied' : 'Copy Incubation Summary'}
+          </button>
+        )}
+      </div>
+      {visible && (
+        <div style={{ marginTop: 18, background: '#fafaf9', border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px' }}>
+          <p style={{ whiteSpace: 'pre-line', fontSize: 13, color: C.text2, lineHeight: 1.8 }}>
+            {memo}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function IncubationView() {
+  return (
+    <div className="fade-up">
+      <div style={{ margin: '38px 0 18px' }}>
+        <Label style={{ marginBottom: 8 }}>Incubation View</Label>
+        <h2 style={{ fontSize: 24, fontWeight: 900, color: C.text, letterSpacing: -0.7, marginBottom: 8 }}>
+          Product demo + venture-building memo
+        </h2>
+        <p style={{ fontSize: 13, color: C.text2, lineHeight: 1.7, maxWidth: 780 }}>
+          BuiltRisk AI is an asset-owner-facing risk intelligence layer for commercial real estate, helping owners prepare for underwriting, reduce risk, and make portfolio decisions before annual insurance renewal cycles.
+        </p>
+      </div>
+      <MarketMap />
+      <CustomerDiscovery />
+      <BusinessCaseCalculator />
+      <GtmWedge />
+      <CeoMemo />
+    </div>
+  )
+}
+
 // ─── VIEW 4: RESULTS ─────────────────────────────────────────────────────────
 function Results({ data, onReset }) {
   const d = data
@@ -602,6 +966,7 @@ function Results({ data, onReset }) {
   const [energyPct,   setEnergyPct]   = useState(0)
   const [compliance,  setCompliance]  = useState('delayed')
   const [maintenance, setMaintenance] = useState('low')
+  const [showIncubation, setShowIncubation] = useState(false)
 
   const energyDelta      = -Math.round((energyPct / 20) * 6)
   const complianceDelta  = compliance  === 'current' ? -5 : 0
@@ -952,6 +1317,35 @@ function Results({ data, onReset }) {
             </p>
           </div>
         </div>
+
+        <div style={{ ...card, marginBottom: showIncubation ? 0 : 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+          <div>
+            <Label style={{ marginBottom: 8 }}>Incubation View</Label>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: -0.4, marginBottom: 6 }}>
+              From product demo to venture case
+            </h3>
+            <p style={{ fontSize: 13, color: C.text2, lineHeight: 1.6, maxWidth: 650 }}>
+              Map the market, pressure-test customer discovery, model the business case, and synthesize a CEO recommendation.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowIncubation(v => !v)}
+            style={{
+              background: showIncubation ? C.card : C.accent,
+              color: showIncubation ? C.text2 : '#fff',
+              border: showIncubation ? `1px solid ${C.border}` : 'none',
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: 13,
+              padding: '12px 18px',
+              flexShrink: 0,
+            }}
+          >
+            {showIncubation ? 'Hide Incubation View' : 'Open Incubation View'}
+          </button>
+        </div>
+
+        {showIncubation && <IncubationView />}
 
         <Sp h={48} />
         <p style={{ fontSize: 11, color: C.text3, textAlign: 'center' }}>
